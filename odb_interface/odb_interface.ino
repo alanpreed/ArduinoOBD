@@ -28,15 +28,19 @@ void setup()
   }
 
   Serial.print("Connecting!\r\n");
-  
-  if(!odb.connect(0x01, 9600));
-  {
-    Serial.print("Connection failed!\r\n");
-    while(1)
-    {
-    }
-  }
 
+  bool result = odb.connect(0x01, 9600);
+
+  if(result)
+  {
+    Serial.println("Connection succeeded");
+  }
+  else
+  {
+    Serial.println("Connection failed");
+
+    while(1);
+  }
 }
 
 void loop() {
