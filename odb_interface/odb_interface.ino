@@ -3,8 +3,8 @@
 
 #define BUTTON_PIN 10
 
-#define OBD_RX 2
-#define OBD_TX 3
+#define OBD_RX 8
+#define OBD_TX 9
 
 KW1281 obd(OBD_RX,OBD_TX);
 

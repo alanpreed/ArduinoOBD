@@ -1,18 +1,19 @@
 #include "KW1281.h"
 #include "Block.h"
 
-KW1281::KW1281(uint8_t rx_pin, uint8_t tx_pin) : serial(rx_pin, tx_pin, false),
-                                                 rx_pin(rx_pin),
+KW1281::KW1281(uint8_t rx_pin, uint8_t tx_pin) : rx_pin(rx_pin),
                                                  tx_pin(tx_pin)
 {
   // Constructor code
+  pinMode(rx_pin, INPUT_PULLUP);
+  pinMode(tx_pin, OUTPUT);
+  digitalWrite(tx_pin, HIGH);
 }
 
 //-- Public functions ---------------------------------------------------------
 
 bool KW1281::connect(uint8_t address, int baud)
 {
-
   block_counter = 0;
 
   Serial.print("Sending address at 5 baud\r\n");
@@ -32,14 +33,11 @@ bool KW1281::connect(uint8_t address, int baud)
   for (uint8_t i = 0; i < 3; i++)
   {
     initial_data[i] = serial_read();
-  }
 
-  Serial.print("1: ");
-  Serial.println(initial_data[0], HEX);
-  Serial.print("2: ");
-  Serial.println(initial_data[1], HEX);
-  Serial.print("3: ");
-  Serial.println(initial_data[2], HEX);
+    Serial.print(i + 1);
+    Serial.print(": ");
+    Serial.println(initial_data[i], HEX);
+  }
 
   // Check we received correct sync byte and keyword: 0x55, 0x01, 0x8A
   if (initial_data[0] != 0x55 || initial_data[1] != 0x01 || initial_data[2] != 0x8A)
@@ -52,55 +50,21 @@ bool KW1281::connect(uint8_t address, int baud)
   }
 
   // Read 4x initial connection data blocks
-  Serial.write("Receiving info block 1\r\n");
-  if (!receive_block(rx_block))
+  for(size_t i = 0; i < 4; i++)
   {
-    return false;
+    Serial.print("Receiving info block ");
+    Serial.println(i + 1);
+    if (!receive_block(rx_block))
+    {
+      return false;
+    }
+
+    Serial.println("Sending ACK");
+    if (!send_block(ack_block))
+    {
+      return false;
+    }
   }
-
-  Serial.println("Sending ACK");
-  if (!send_block(ack_block))
-  {
-    return false;
-  }
-
-  Serial.write("Receiving info block 2\r\n");
-  if (!receive_block(rx_block))
-  {
-    return false;
-  }
-
-  Serial.println("Sending ACK");
-  if (!send_block(ack_block))
-  {
-    return false;
-  }
-
-  Serial.write("Receiving info block 3\r\n");
-  if (!receive_block(rx_block))
-  {
-    return false;
-  }
-
-  Serial.println("Sending ACK");
-  if (!send_block(ack_block))
-  {
-    return false;
-  }
-
-  Serial.write("Receiving info block 4\r\n");
-  if (!receive_block(rx_block))
-  {
-    return false;
-  }
-
-  Serial.println("Sending ACK");
-
-  if (!send_block(ack_block))
-  {
-    return false;
-  }
-
   return true;
 }
 
@@ -191,28 +155,17 @@ uint8_t KW1281::serial_read(void)
       return 0;
     }
   }
-
+  
   return serial.read();
 }
 
 void KW1281::serial_write(uint8_t data)
 {
-
   // Brief wait before writing, to prevent interfering with previous byte
   unsigned volatile long timer = millis() + 2;
-  while (millis() < timer)
-    ;
+  while (millis() < timer);
 
   serial.write(data);
-
-  // Because the K-line is bidirectional, TX data is echoed back on RX.  The software
-  // serial port sometimes detects a 0 at the end of the transmitted byte as a start bit
-  // and reads in a spurious 0xFF, which we need to clear.
-
-  while (serial.available())
-  {
-    serial.read();
-  }
 }
 
 uint8_t KW1281::compliment(uint8_t in)
