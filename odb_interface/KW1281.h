@@ -3,7 +3,6 @@
 
 // Class that implements the KW1281 message protocol
 #include <Arduino.h>
-#include "ModAltSoftSerial.h"
 #include "Block.h"
 
 #define KW1281_BAUD 9600
@@ -20,7 +19,6 @@ public:
 private:
   uint8_t rx_pin;
   uint8_t tx_pin;
-  AltSoftSerial serial;
   uint8_t block_counter;
   
   void send_5baud(uint8_t data);

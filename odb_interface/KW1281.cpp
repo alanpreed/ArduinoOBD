@@ -1,5 +1,6 @@
 #include "KW1281.h"
 #include "Block.h"
+#include "Debug.h"
 
 KW1281::KW1281(uint8_t rx_pin, uint8_t tx_pin) : rx_pin(rx_pin),
                                                  tx_pin(tx_pin)
@@ -16,17 +17,18 @@ bool KW1281::connect(uint8_t address, int baud)
 {
   block_counter = 0;
 
-  Serial.print("Sending address at 5 baud\r\n");
+  Debug.print("Sending address at 5 baud\r\n");
   send_5baud(address);
 
-  serial.begin(KW1281_BAUD);
+  // Use hardware serial port for KW1281 communication
+  Serial.begin(KW1281_BAUD);
 
   Block rx_block;
   Block ack_block;
   ack_block.len = 3;
   ack_block.title = ACK;
 
-  Serial.print("Receiving initial bytes\r\n");
+  Debug.print("Receiving initial bytes\r\n");
 
   // Initial 3 data bytes are treated differently
   uint8_t initial_data[3];
@@ -34,9 +36,9 @@ bool KW1281::connect(uint8_t address, int baud)
   {
     initial_data[i] = serial_read();
 
-    Serial.print(i + 1);
-    Serial.print(": ");
-    Serial.println(initial_data[i], HEX);
+    Debug.print(i + 1);
+    Debug.print(": ");
+    Debug.println(initial_data[i], HEX);
   }
 
   // Check we received correct sync byte and keyword: 0x55, 0x01, 0x8A
@@ -52,14 +54,14 @@ bool KW1281::connect(uint8_t address, int baud)
   // Read 4x initial connection data blocks
   for(size_t i = 0; i < 4; i++)
   {
-    Serial.print("Receiving info block ");
-    Serial.println(i + 1);
+    Debug.print("Receiving info block ");
+    Debug.println(i + 1);
     if (!receive_block(rx_block))
     {
       return false;
     }
 
-    Serial.println("Sending ACK");
+    Debug.println("Sending ACK");
     if (!send_block(ack_block))
     {
       return false;
@@ -73,19 +75,25 @@ bool KW1281::receive_block(Block &rx_block)
   rx_block.len = serial_read();
   if (rx_block.len > MAX_BLOCK_SIZE)
   {
-    Serial.println("ERROR: block too long");
+    Debug.print("ERROR: block too long: ");
+    Debug.println(rx_block.len);
     return false;
   }
   serial_write(compliment(rx_block.len));
 
-  Serial.print("RX block length: ");
-  Serial.println(rx_block.len, DEC);
+  //Debug.print("RX block length: ");
+  //Debug.println(rx_block.len, DEC);
 
   rx_block.counter = serial_read();
   serial_write(compliment(rx_block.counter));
   if (rx_block.counter != ++block_counter)
   {
-    Serial.println("ERROR: wrong block counter received");
+    Debug.println("ERROR: wrong block counter");
+    
+    Debug.print("Expected: ");
+    Debug.print(block_counter, HEX);
+    Debug.print(", received: ");
+    Debug.println(rx_block.counter, HEX);
     return false;
   }
 
@@ -102,7 +110,9 @@ bool KW1281::receive_block(Block &rx_block)
   uint8_t block_end = serial_read();
   if (block_end != BLOCK_END_BYTE)
   {
-    Serial.println("ERROR: expected block end");
+    Debug.print("ERROR: expected block end");
+    Debug.print(", received: ");
+    Debug.println(block_end, HEX);
     return false;
   }
 
@@ -116,7 +126,7 @@ bool KW1281::send_block(Block &tx_block)
 
   if (tx_block.len > MAX_BLOCK_SIZE)
   {
-    Serial.println("ERROR: block too long");
+    Debug.println("ERROR: block too long");
     return false;
   }
 
@@ -129,7 +139,11 @@ bool KW1281::send_block(Block &tx_block)
 
     if (response != compliment(tx_block.raw_block[i]))
     {
-      Serial.print("ERROR: invalid compliment received");
+      Debug.println("ERROR: invalid compliment");
+      Debug.print("Expected: ");
+      Debug.print(compliment(tx_block.raw_block[i]), HEX);
+      Debug.print(", received: ");
+      Debug.println(response, HEX);
       return false;
     }
   }
@@ -147,16 +161,16 @@ uint8_t KW1281::serial_read(void)
   unsigned long timeout = millis() + 1000;
 
   // Wait for data
-  while (!serial.available())
+  while (!Serial.available())
   {
     if (millis() >= timeout)
     {
-      Serial.println(F("ERROR: serial timeout\r\n"));
+      Debug.println(F("ERROR: serial timeout\r\n"));
       return 0;
     }
   }
   
-  return serial.read();
+  return Serial.read();
 }
 
 void KW1281::serial_write(uint8_t data)
@@ -165,7 +179,9 @@ void KW1281::serial_write(uint8_t data)
   unsigned volatile long timer = millis() + 2;
   while (millis() < timer);
 
-  serial.write(data);
+  Serial.write(data);
+
+  // TODO: Handle loopback
 }
 
 uint8_t KW1281::compliment(uint8_t in)
