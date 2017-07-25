@@ -18,8 +18,10 @@ typedef enum {
     ACK             = 0x09,
     GROUP_REQUEST   = 0x29,
     GROUP_REPLY     = 0xE7,
+    GROUP_DATA      = 0xF4,
     DATA            = 0xF6,
-    ERRORS_REPLY    = 0xFC
+    ERRORS_REPLY    = 0xFC,
+    NACK            = 0x0A
 } BlockTitle;
 
 class Block {

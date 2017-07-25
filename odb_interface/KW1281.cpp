@@ -67,6 +67,12 @@ bool KW1281::connect(uint8_t address, int baud)
       return false;
     }
   }
+
+  Debug.println("Receiving ACK");
+  if(!receive_block(rx_block))
+  {
+    return false;
+  }
   return true;
 }
 
@@ -181,7 +187,13 @@ void KW1281::serial_write(uint8_t data)
 
   Serial.write(data);
 
-  // TODO: Handle loopback
+  // Handle loopback from bidirectional KW1281 connection
+  uint8_t rx_data = serial_read();
+
+  if(rx_data != data)
+  {
+    Debug.print("Error! Echo byte incorrect");
+  }
 }
 
 uint8_t KW1281::compliment(uint8_t in)
