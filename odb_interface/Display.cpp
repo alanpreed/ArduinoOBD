@@ -14,6 +14,7 @@ void Display::init()
 {
   // LCD dimensions: 20 characters, 4 rows
   lcd.begin(LCD_COLUMNS, LCD_ROWS);
+  clear();
 }
 
 void Display::clear()

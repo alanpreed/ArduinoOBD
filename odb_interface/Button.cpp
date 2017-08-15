@@ -6,7 +6,7 @@
 #include "Debug.h"
 
 Button::Button(uint8_t pin, ButtonCB callback): 
-                pin(pin),callback(callback)
+                pin(pin), callback(callback)
 {
   pinMode(pin, INPUT_PULLUP);
 }

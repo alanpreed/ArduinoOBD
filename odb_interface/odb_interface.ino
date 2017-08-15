@@ -4,6 +4,7 @@
 #include "Error.h"
 #include "Display.h"
 #include "Button.h"
+#include "GroupSelector.h"
 
 // External connections
 #define CONNECT_BUTTON 4
@@ -11,9 +12,6 @@
 #define MINUS_BUTTON 3
 #define OBD_RX 0
 #define OBD_TX 1
-
-#define FIRST_GROUP 1
-#define LAST_GROUP 21
 
 typedef enum {
   DISCONNECTED,
@@ -23,67 +21,58 @@ typedef enum {
   ERROR,
 } State; 
 
-// Button callbacks
-void isr_connect_button(void);
-void isr_plus_button(void);
-void isr_minus_button(void);
-
 KW1281 obd(OBD_RX,OBD_TX);
+GroupSelector selector(PLUS_BUTTON, MINUS_BUTTON);
 Display display;
 State current_state;
 Error current_error;
 
-uint8_t current_group;
-volatile uint8_t next_group;
-volatile bool connect_button_pressed;
-
 Block rx_block;
 Block tx_block;
 
+void isr_connect_button(void);
+volatile bool connect_button_pressed;
 Button connect(CONNECT_BUTTON, isr_connect_button);
-Button plus(PLUS_BUTTON, isr_plus_button);
-Button minus(MINUS_BUTTON, isr_minus_button);
 
 void setup() 
 { 
   Debug.init();
-  Debug.println("Arduino OBD Interface");
+  Debug.println(F("Arduino OBD Interface"));
   display.init();
-  display.clear();
 
   current_state = DISCONNECTED;
   current_error = SUCCESS;
-  current_group = FIRST_GROUP;
-  next_group = current_group;
+
   connect_button_pressed = false;
-  
   connect.enable();
-  plus.enable();
-  minus.enable();
+
+  selector.enable();
 }
 
 void loop() {
-  current_group = next_group;
+  selector.update();
 
   switch(current_state)
   {
     case DISCONNECTED:
-      display.show_disconnected(current_group);
+      if(selector.changed)
+      {
+        display.clear();
+      }
+      display.show_disconnected(selector.current_group);
     
       if(connect_button_pressed)
       {
         current_state = CONNECTING;
         display.clear();
+        selector.disable();
+        connect.disable();
         connect_button_pressed = false;
       }
       break;
 
     case CONNECTING:
-      connect.disable();
-      plus.disable();
-      minus.disable();
-
-      display.show_connecting(current_group);
+      display.show_connecting(selector.current_group);
       
       if(obd.connect(0x01, 9600))
       {
@@ -99,10 +88,10 @@ void loop() {
       break;
 
     case RECEIVE_HEADER:
-      display.show_header(current_group);
+      display.show_header(selector.current_group);
       tx_block.len = 4;
       tx_block.title = GROUP_REQUEST;
-      tx_block.data[0] = current_group;
+      tx_block.data[0] = selector.current_group;
 
       if(!obd.send_block(tx_block))
       {
@@ -151,8 +140,9 @@ void loop() {
       else
       {
         display.clear();
-        display.show_group(current_group, rx_block.data[0], rx_block.data[1],
-                                            rx_block.data[2], rx_block.data[3]);
+        display.show_group(selector.current_group, 
+                              rx_block.data[0], rx_block.data[1],
+                              rx_block.data[2], rx_block.data[3]);
       }
       break;  
 
@@ -162,41 +152,9 @@ void loop() {
   }
 }
 
-
-//-- Interrupt service routines -----------------------------------------------
 void isr_connect_button(void)
 {
   Debug.println("Connect");
   connect_button_pressed = true;
   connect.disable();
-}
-
-void isr_plus_button(void)
-{
-  plus.disable();
-  Debug.println("Plus");
-
-  if(next_group == LAST_GROUP)
-  {
-    next_group = FIRST_GROUP;
-  }
-  else
-  {
-    next_group++;
-  }
-}
-
-void isr_minus_button(void)
-{
-  minus.disable();
-  Debug.println("Minus");
-
-  if(next_group == FIRST_GROUP)
-  {
-    next_group = LAST_GROUP;
-  }
-  else
-  {
-    next_group--;
-  }
 }
