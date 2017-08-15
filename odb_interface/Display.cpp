@@ -1,16 +1,12 @@
-
-//-- Required header files ----------------------------------------------------
 #include "Display.h"
 #include "Arduino.h"
+#include "Field.h"
+#include "ECUGroups.h"
 
-
-//-- Private defines ----------------------------------------------------------
 #define LCD_ROWS 4
 #define LCD_COLUMNS 20
 
-
-//-- Public function definitions ----------------------------------------------
-Display::Display() : lcd(A1, A0, A5, A4, A3, A2) // LCD pins: RS, E, Data 4-7
+Display::Display() : lcd(A0, A1, A2, A3, A4, A5) // LCD pins: RS, E, Data 4-7
 {
 }
 
@@ -18,7 +14,6 @@ void Display::init()
 {
   // LCD dimensions: 20 characters, 4 rows
   lcd.begin(LCD_COLUMNS, LCD_ROWS);
-
 }
 
 void Display::clear()
@@ -27,16 +22,24 @@ void Display::clear()
   lcd.setCursor(0,0);
 }
 
-void Display::show_disconnected()
+void Display::show_disconnected(uint8_t group_id)
 {
   lcd.setCursor(0,0);
   lcd.print("Disconnected");
+
+  lcd.setCursor(0,2);
+  lcd.print("Group: ");
+  lcd.print(group_id, DEC);
 }
 
-void Display::show_connecting()
+void Display::show_connecting(uint8_t group_id)
 {
   lcd.setCursor(0,0);
   lcd.print("Connecting");
+  
+  lcd.setCursor(0,2);
+  lcd.print("Group: ");
+  lcd.print(group_id, DEC);
 }
 
 void Display::show_error(Error error)
@@ -64,56 +67,37 @@ void Display::show_error(Error error)
   }
 }
 
-void Display::show_header()
+void Display::show_header(uint8_t group_id)
 {
   lcd.setCursor(0,0);
   lcd.print("Receiving header");
+
+  lcd.setCursor(0,2);
+  lcd.print("Group: ");
+  lcd.print(group_id, DEC);
 }
 
 void Display::show_group(uint8_t group_id, uint8_t a, uint8_t b, uint8_t c, uint8_t d)
 {
+  char str[10];
+
   lcd.setCursor(0,0);
   lcd.print("Group: ");
   lcd.print(group_id, DEC);
-  int16_t voltage = 0;
 
-  switch(group_id)
-  {
-    case 0x01:
-      lcd.setCursor(0,2);
-      lcd.print((int)a * 32, DEC);
-      lcd.print("RPM");
+  lcd.setCursor(0,2);
+  FormatField(ECUGroups[group_id - 1][0], a, str);
+  lcd.print(str);
 
-      lcd.setCursor(10,2);
-      lcd.print((int)b - 72, DEC);
-      lcd.print("C");
-      
-      lcd.setCursor(0,3);
-      voltage = (int16_t)c * 2;
-      lcd.print(voltage / 100, DEC);
-      lcd.print(".");
-      lcd.print(voltage % 100, DEC);
-      lcd.print("V");
-      
-      lcd.setCursor(10,3);
-      lcd.print(d, BIN);
-      break;
-
-    default:
-      lcd.setCursor(0,2);
-      lcd.print("1: ");
-      lcd.print(a, HEX);
-
-      lcd.setCursor(10,2);
-      lcd.print("2: ");
-      lcd.print(b, HEX);
-      
-      lcd.setCursor(0,3);
-      lcd.print("3: ");
-      lcd.print(c, HEX);
-      
-      lcd.setCursor(10,3);
-      lcd.print("4: ");
-      lcd.print(d, HEX);
-  }
+  lcd.setCursor(10,2);
+  FormatField(ECUGroups[group_id - 1][1], b, str);
+  lcd.print(str);
+  
+  lcd.setCursor(0,3);
+  FormatField(ECUGroups[group_id - 1][2], c, str);
+  lcd.print(str);
+  
+  lcd.setCursor(10,3);
+  FormatField(ECUGroups[group_id - 1][3], d, str);
+  lcd.print(str);
 }

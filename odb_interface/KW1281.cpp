@@ -5,7 +5,6 @@
 KW1281::KW1281(uint8_t rx_pin, uint8_t tx_pin) : rx_pin(rx_pin),
                                                  tx_pin(tx_pin)
 {
-  // Constructor code
   pinMode(rx_pin, INPUT_PULLUP);
   pinMode(tx_pin, OUTPUT);
   digitalWrite(tx_pin, HIGH);
@@ -86,9 +85,6 @@ bool KW1281::receive_block(Block &rx_block)
     return false;
   }
   serial_write(compliment(rx_block.len));
-
-  //Debug.print("RX block length: ");
-  //Debug.println(rx_block.len, DEC);
 
   rx_block.counter = serial_read();
   serial_write(compliment(rx_block.counter));
