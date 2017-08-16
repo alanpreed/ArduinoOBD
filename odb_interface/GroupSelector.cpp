@@ -1,12 +1,17 @@
 #include "GroupSelector.h"
 #include "Debug.h"
 
-static bool GroupSelector::plus_pressed = false;
-static bool GroupSelector::minus_pressed = false;
+static GroupSelector& GroupSelector::get_instance(uint8_t plus_pin, uint8_t minus_pin)
+{
+  static GroupSelector selector(plus_pin, minus_pin, 
+                                [](){selector.isr_plus_button();},
+                                [](){selector.isr_minus_button();});
+  return selector;
+}
 
-GroupSelector::GroupSelector(uint8_t plus_pin, uint8_t minus_pin):
-                              plus(plus_pin, GroupSelector::isr_plus_button),
-                              minus(minus_pin, GroupSelector::isr_minus_button)
+GroupSelector::GroupSelector(uint8_t plus_pin, uint8_t minus_pin,
+                              ButtonCB plus_cb, ButtonCB minus_cb):
+                              plus(plus_pin, plus_cb), minus(minus_pin, minus_cb)
 {
   enabled = false;
   current_group = FIRST_GROUP;

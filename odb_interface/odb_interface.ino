@@ -22,7 +22,7 @@ typedef enum {
 } State; 
 
 KW1281 obd(OBD_RX,OBD_TX);
-GroupSelector selector(PLUS_BUTTON, MINUS_BUTTON);
+GroupSelector& selector = GroupSelector::get_instance(PLUS_BUTTON, MINUS_BUTTON);
 Display display;
 State current_state;
 Error current_error;

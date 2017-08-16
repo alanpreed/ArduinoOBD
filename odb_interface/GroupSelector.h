@@ -7,7 +7,8 @@
 
 class GroupSelector{
   public:
-    GroupSelector(uint8_t plus_pin, uint8_t minus_pin);
+    static GroupSelector& get_instance(uint8_t plus_pin, uint8_t minus_pin);
+    
     uint8_t current_group;
     bool changed;
     void disable(void);
@@ -15,14 +16,15 @@ class GroupSelector{
     void update(void);
 
   private:
+    GroupSelector(uint8_t plus_pin, uint8_t minus_pin, ButtonCB plus_cb, ButtonCB minus_cb);
     Button plus;
     Button minus;
     bool enabled;
 
-    static void isr_plus_button(void);
-    static void isr_minus_button(void);
-    static bool plus_pressed;
-    static bool minus_pressed;
+    void isr_plus_button(void);
+    void isr_minus_button(void);
+    bool plus_pressed;
+    bool minus_pressed;
 };
 
 #endif
