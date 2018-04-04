@@ -1,6 +1,5 @@
 #include "ControlPanel.h"
 #include "Debug.h"
-
 #include <MsTimer2.h>
 
 #define BUTTON_COOLDOWN 100

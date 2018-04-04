@@ -6,7 +6,6 @@
 #include "Button.h"
 #include "ControlPanel.h"
 
-// External connections
 #define CONNECT_BUTTON 4
 #define PLUS_BUTTON 2
 #define MINUS_BUTTON 3

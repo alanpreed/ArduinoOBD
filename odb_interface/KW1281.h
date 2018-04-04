@@ -1,7 +1,6 @@
 #ifndef __KW1281_H
 #define __KW1281_H
 
-// Class that implements the KW1281 message protocol
 #include <Arduino.h>
 #include "Block.h"
 

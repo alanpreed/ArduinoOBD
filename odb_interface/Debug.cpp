@@ -1,15 +1,9 @@
-
-//-- Required headers ---------------------------------------------------------
 #include "Debug.h"
 
-
-//-- Private defines- ---------------------------------------------------------
 #define DEBUG_BAUD 9600
 #define DEBUG_TX 8
 #define DEBUG_RX 9
 
-
-//-- Public functions ---------------------------------------------------------
 void DebugSerial::init(void)
 {
 #ifdef DEBUG

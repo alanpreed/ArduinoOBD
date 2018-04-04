@@ -1,16 +1,11 @@
 #ifndef __DEBUG_H
 #define __DEBUG_H
 
-//-- Required headers ---------------------------------------------------------
 #include <stdint.h>
 #include <AltSoftSerial.h>
 
-
-//-- Public defines -----------------------------------------------------------
 #define DEBUG
 
-
-//-- Public data types ---------------------------------------------------------
 class DebugSerial : public Print{
 public:
     DebugSerial(){}
@@ -23,8 +18,6 @@ private:
     AltSoftSerial serial;
 };
 
-
-//-- Public data --------------------------------------------------------------
 extern DebugSerial Debug;
 
 #endif

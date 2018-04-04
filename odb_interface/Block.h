@@ -1,12 +1,11 @@
 #ifndef __BLOCK_H
 #define __BLOCK_H
 
-// Class for a generic KW1281 block
 #include <stdint.h>
 
-// Technically, blocks can be up to 256 bytes long.  However, this makes them
-// take up a lot of memory, and none of the blocks we use are nearly this long,
-// so we can use smaller.
+// Technically, KW1281 blocks can be up to 256 bytes long.  However, this makes 
+// them take up a lot of memory, and none of the blocks we use are nearly this 
+// long, so we can use smaller.
 #define MAX_BLOCK_SIZE 64
 #define BLOCK_END_BYTE 0x03
 

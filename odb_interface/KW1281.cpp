@@ -10,8 +10,6 @@ KW1281::KW1281(uint8_t rx_pin, uint8_t tx_pin) : rx_pin(rx_pin),
   digitalWrite(tx_pin, HIGH);
 }
 
-//-- Public functions ---------------------------------------------------------
-
 bool KW1281::connect(uint8_t address, int baud)
 {
   block_counter = 0;
@@ -113,7 +111,7 @@ bool KW1281::receive_block(Block &rx_block)
     serial_write(compliment(rx_block.data[i]));
   }
 
-  // Don't send a compliment for the last byte
+  // Last byte in a block has no compliment
   uint8_t block_end = serial_read();
   if (block_end != BLOCK_END_BYTE)
   {
@@ -140,7 +138,6 @@ bool KW1281::send_block(Block &tx_block)
   uint8_t response = 0;
   for (uint8_t i = 0; i < tx_block.len; i++)
   {
-    // Send each block byte and check the response
     serial_write(tx_block.raw_block[i]);
     response = serial_read();
 
@@ -155,19 +152,15 @@ bool KW1281::send_block(Block &tx_block)
     }
   }
 
-  // Send block end byte
   serial_write(BLOCK_END_BYTE);
 
   return true;
 }
 
-//-- Private functions --------------------------------------------------------
-
 uint8_t KW1281::serial_read(void)
 {
   unsigned long timeout = millis() + 1000;
 
-  // Wait for data
   while (!Serial.available())
   {
     if (millis() >= timeout)
