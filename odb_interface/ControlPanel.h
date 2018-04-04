@@ -28,6 +28,9 @@ class ControlPanel{
     void isr_plus_button(void);
     void isr_minus_button(void);
     void isr_connect_button(void);
+    static void timer_cb(void);
+    
+    static volatile bool timer_running;
     volatile bool plus_pressed;
     volatile bool minus_pressed;
     volatile bool connect_pressed;
