@@ -13,6 +13,7 @@ public:
 
   // Return values indicate success or failure
   bool connect(uint8_t address, int baud);
+  void disconnect(void);
   bool receive_block(Block &block);
   bool send_block(Block &block);
 

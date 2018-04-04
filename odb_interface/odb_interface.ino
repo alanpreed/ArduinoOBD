@@ -4,7 +4,7 @@
 #include "Error.h"
 #include "Display.h"
 #include "Button.h"
-#include "GroupSelector.h"
+#include "ControlPanel.h"
 
 // External connections
 #define CONNECT_BUTTON 4
@@ -18,21 +18,19 @@ typedef enum {
   CONNECTING,
   RECEIVE_HEADER,
   RECEIVE_DATA,
+  DISCONNECTING,
   ERROR,
 } State; 
 
 KW1281 obd(OBD_RX,OBD_TX);
-GroupSelector& selector = GroupSelector::get_instance(PLUS_BUTTON, MINUS_BUTTON);
+ControlPanel& panel = ControlPanel::get_instance(PLUS_BUTTON, MINUS_BUTTON, CONNECT_BUTTON);
 Display display;
 State current_state;
 Error current_error;
 
 Block rx_block;
 Block tx_block;
-
-void isr_connect_button(void);
-volatile bool connect_button_pressed;
-Button connect(CONNECT_BUTTON, isr_connect_button);
+void enter_error_state(Error error);
 
 void setup() 
 { 
@@ -43,118 +41,154 @@ void setup()
   current_state = DISCONNECTED;
   current_error = SUCCESS;
 
-  connect_button_pressed = false;
-  connect.enable();
-
-  selector.enable();
+  panel.enable();
 }
 
 void loop() {
-  selector.update();
-
   switch(current_state)
   {
     case DISCONNECTED:
-      if(selector.changed)
+      if(panel.check_selector())
       {
         display.clear();
       }
-      display.show_disconnected(selector.current_group);
+      display.show_disconnected(panel.current_group);
     
-      if(connect_button_pressed)
+      if(panel.check_connect())
       {
         current_state = CONNECTING;
+        panel.disable();
         display.clear();
-        selector.disable();
-        connect.disable();
-        connect_button_pressed = false;
       }
       break;
 
     case CONNECTING:
-      display.show_connecting(selector.current_group);
+      display.show_connecting(panel.current_group);
       
       if(obd.connect(0x01, 9600))
       {
         current_state = RECEIVE_HEADER;
         display.clear();
       }
-      else{
+      else
+      {
         Debug.println(F("ERROR: Connection failed"));
-        current_error = CONNECT_ERROR;
-        current_state = ERROR;
-        display.clear();
+        enter_error_state(CONNECT_ERROR);
       }
       break;
 
     case RECEIVE_HEADER:
-      display.show_header(selector.current_group);
+      display.show_header(panel.current_group);
       tx_block.len = 4;
       tx_block.title = GROUP_REQUEST;
-      tx_block.data[0] = selector.current_group;
+      tx_block.data[0] = panel.current_group;
 
       if(!obd.send_block(tx_block))
       {
         Debug.println(F("ERROR: Initial group request failed"));
-        current_error = TX_ERROR;
-        current_state = ERROR;
-        display.clear();
+        enter_error_state(TX_ERROR);
       }
       else if(!obd.receive_block(rx_block))
       {
         Debug.println(F("ERROR: Didn't receive header"));
-        current_error = RX_ERROR;
-        current_state = ERROR;
-        display.clear();
+        enter_error_state(RX_ERROR);
       }
-      else if(rx_block.title != HEADER)
+      else if(rx_block.title != HEADER && rx_block.title != GROUP_DATA) // Only the first group selection sends a header
       {
-        Debug.println(F("ERROR: Wrong block type"));
+        Debug.print(F("ERROR: Wrong block type: "));
         Debug.println(rx_block.title, HEX);
-        current_error = RX_ERROR;
-        current_state = ERROR;
+        enter_error_state(RX_ERROR);
+        current_state = RECEIVE_DATA;
+        panel.enable();
         display.clear();
       }
       else
       {
         current_state = RECEIVE_DATA;
+        panel.enable();
         display.clear();
       }
       break;
 
     case RECEIVE_DATA:
-      if(!obd.send_block(tx_block))
+      if(panel.check_connect())
       {
-        Debug.println(F("ERROR: Group request failed"));
-        current_error = TX_ERROR;
-        current_state = ERROR;
+        current_state = DISCONNECTING;
+        panel.disable();
         display.clear();
       }
-      else if(!obd.receive_block(rx_block) || rx_block.title != GROUP_DATA)
+      else if(panel.check_selector())
       {
-        Debug.println(F("ERROR: Failed to receive data"));
-        current_error = RX_ERROR;
-        current_state = ERROR;
+        current_state = RECEIVE_HEADER;
+        panel.disable();
         display.clear();
       }
       else
       {
-        display.clear();
-        display.show_group(selector.current_group, 
-                              rx_block.data[0], rx_block.data[1],
-                              rx_block.data[2], rx_block.data[3]);
+        if(!obd.send_block(tx_block))
+        {
+          Debug.println(F("ERROR: Group request failed"));
+          enter_error_state(TX_ERROR);
+        }
+        else if(!obd.receive_block(rx_block) || rx_block.title != GROUP_DATA)
+        {
+          Debug.println(F("ERROR: Failed to receive data"));
+          enter_error_state(RX_ERROR);
+        }
+        else
+        {
+          display.clear();
+          display.show_group(panel.current_group, 
+                                rx_block.data[0], rx_block.data[1],
+                                rx_block.data[2], rx_block.data[3]);
+        }
       }
-      break;  
+      break;
+
+    case DISCONNECTING:
+      display.show_disconnecting();
+      tx_block.len = 3;
+      tx_block.title = END;
+
+      if(!obd.send_block(tx_block))
+      {
+        Debug.println(F("ERROR: disconnect not sent"));
+        enter_error_state(TX_ERROR);
+      }
+      else if(!obd.receive_block(rx_block) || rx_block.title != ACK)
+      {
+        Debug.println(F("ERROR: disconnect not acknowledged"));
+        enter_error_state(RX_ERROR);
+      }
+      else
+      {
+        current_state = DISCONNECTED;
+        obd.disconnect();
+        panel.enable();
+        display.clear();
+      }
+
+      break;
 
     case ERROR:
       display.show_error(current_error);
+
+      if(panel.check_connect())
+      {
+        current_state = DISCONNECTED;
+        current_error = SUCCESS;
+        panel.enable();
+        display.clear();
+      }
       break;
   }
 }
 
-void isr_connect_button(void)
+void enter_error_state(Error error)
 {
-  Debug.println("Connect");
-  connect_button_pressed = true;
-  connect.disable();
+  current_error = error;
+  current_state = ERROR;
+  obd.disconnect();
+  panel.enable();
+  display.clear();
 }

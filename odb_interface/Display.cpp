@@ -102,3 +102,9 @@ void Display::show_group(uint8_t group_id, uint8_t a, uint8_t b, uint8_t c, uint
   FormatField(ECUGroups[group_id - 1][3], d, str);
   lcd.print(str);
 }
+
+void Display::show_disconnecting(void)
+{
+  lcd.setCursor(0,0);
+  lcd.print("Disconnecting");
+}

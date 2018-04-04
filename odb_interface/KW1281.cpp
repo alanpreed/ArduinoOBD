@@ -75,6 +75,11 @@ bool KW1281::connect(uint8_t address, int baud)
   return true;
 }
 
+void KW1281::disconnect(void)
+{
+  Serial.end();
+}
+
 bool KW1281::receive_block(Block &rx_block)
 {
   rx_block.len = serial_read();
