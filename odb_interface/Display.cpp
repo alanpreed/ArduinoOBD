@@ -80,7 +80,7 @@ void Display::show_header(uint8_t group_id)
 
 void Display::show_group(uint8_t group_id, uint8_t a, uint8_t b, uint8_t c, uint8_t d)
 {
-  char str[10];
+  char str[FIELD_PRINT_LENGTH + 1];
 
   lcd.setCursor(0,0);
   lcd.print("Group: ");

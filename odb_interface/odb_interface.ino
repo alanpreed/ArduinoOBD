@@ -136,7 +136,6 @@ void loop() {
         }
         else
         {
-          display.clear();
           display.show_group(panel.current_group, 
                                 rx_block.data[0], rx_block.data[1],
                                 rx_block.data[2], rx_block.data[3]);
