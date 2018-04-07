@@ -14,8 +14,8 @@ void FormatField(Field field, uint8_t value, char *output)
       break;
 
     case FIELD_COOLANT_TEMP:
-      // 1 degree Celsius per bit, apparent offset of -95
-      sprintf(output, "%dC", (int)value - 95);
+      // 1 degree Celsius per bit, apparent offset of -70
+      sprintf(output, "%dC", (int)value - 70);
       break;
 
     case FIELD_L_VOLTAGE:
@@ -75,8 +75,8 @@ void FormatField(Field field, uint8_t value, char *output)
       break;
 
     case FIELD_AIR_TEMP:
-      // 1 degree Celsius per bit, apparent offset of -77
-      sprintf(output, "%dC", (int)value - 77);
+      // 1 degree Celsius per bit, apparent offset of -70
+      sprintf(output, "%dC", (int)value - 70);
       break;
 
     case FIELD_ALTITUDE_COEFF:
